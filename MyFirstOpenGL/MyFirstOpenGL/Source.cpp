@@ -30,7 +30,7 @@ struct GameObject
 struct Camera 
 {
 	glm::vec3 position = glm::vec3(0.f,2.f,5.f);
-	glm::vec3 direction = position + glm::vec3(0.f,0.f,-1.f);
+	glm::vec3 direction = position;
 	glm::vec3 localVectorUp = glm::vec3(0.f,1.f,0.f);
 	glm::vec3 initialPosition = glm::vec3(0.f, 2.f, 5.f);
 	float dollyZoomSpeed = 0.01f;
@@ -84,57 +84,7 @@ glm::mat4 GenerateScaleMatrix(glm::vec3 scaleAxis)
 
 void keyEvents(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-
-
-	if ((key == GLFW_KEY_1 && action == GLFW_PRESS))
-	{
-
-		if (generalPlane == true) 
-		{
-			generalPlane = false;
-			first = true;
-			isometric = true;
-			
-		}
-		else 
-		{
-			isometric = false;
-			detailPlane = false;
-			generalPlane = true;
-		}
-
-	}
-
-	if ((key == GLFW_KEY_2 && action == GLFW_PRESS))
-	{
-		if (detailPlane == true)
-		{
-			detailPlane = false;
-			first = true;
-			isometric = true;
-		}
-		else
-		{
-			detailPlane = true;
-			isometric = false;
-			generalPlane = false;
-		}
-
-
-	}
-
-	if ((key == GLFW_KEY_3 && action == GLFW_PRESS))
-	{
-		
-		isometric = false;
-		detailPlane = false;
-		generalPlane = false;
-		first = true;
-		dollyZoom = true;
-
-	}
-
-
+	
 }
 
 
@@ -713,53 +663,21 @@ void main() {
 			//Pulleamos los eventos (botones, teclas, mouse...)
 			glfwPollEvents();
 			glfwSetKeyCallback(window, keyEvents);
-			
-			 if (detailPlane) 
-			{
-				 camara.position = glm::vec3(0.f, 1.5f, 0.f);
-				 camara.direction = camara.position + glm::vec3(-1.5f, 0.65f, 0.f);
-				 camara.fFov = 5.f;
-			}
-			 else if (dollyZoom) 
-			 {
-				 
-				 if (first) 
-				 {
-					 camara.position = glm::vec3(0.f, 2.f, 5.f);
-					 camara.direction = camara.position + glm::vec3(0.f, 0.f, -1.f);
-					 camara.fFov = 45.f;
-					 first = false;
-				 }
-				 else 
-				 {
-					 camara.initialPosition = glm::vec3(0.f, 2.f, 8.f);
-					 camara.position.z -= camara.dollyZoomSpeed;
-					 camara.fFov += camara.fovSpeed;
-					 if (camara.position.z < camara.initialPosition.z - 4.0f) {  // Limitar el movimiento de la cámara
-						 dollyZoom = false;  // Desactivar el dolly zoom después de alcanzar el límite
-						 camara.position.z = camara.initialPosition.z;
-						 camara.fFov = camara.initialFov;
-						 first = true;
-						 isometric = true;
-					 }
-				 }
 
-				
-			 }
-			 else if (isometric)
-			{
-				 camara.position = glm::vec3(0.f, 2.f, 5.f);
-				 camara.direction = camara.position + glm::vec3(0.f, 0.f, -1.f);
-				 camara.fFov = 45.f;
-					 first = false;
-				
-			 }
-			 else if (generalPlane)
-			 {
-				 camara.position = glm::vec3(0.f, 1.5f, 0.f);
-				 camara.direction = camara.position + glm::vec3(10.f, 0.5f, 1.f);
-				 camara.fFov = 60.f;
-			 }
+			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+				camara.position.z -= 0.01f;
+			}
+			if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+				camara.position.z += 0.01f;
+			}
+
+			if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+				camara.position.x -= 0.01f;
+			}
+
+			if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+				camara.position.x += 0.01f;
+			}
 			 
 			
 			
