@@ -40,6 +40,9 @@ struct Camera
 	float fNear = 0.1f;
 	float fFar = 10.f;
 	float aspectRatio;
+	float pitch = 0;
+	float yaw = 0;
+	glm::vec3 cameraFront;
 };
 
 struct ShaderProgram {
@@ -85,6 +88,36 @@ glm::mat4 GenerateScaleMatrix(glm::vec3 scaleAxis)
 void keyEvents(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
 	
+}
+
+Camera camara;
+
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
+	float lastX = xpos;
+	float lastY = ypos;
+	float xoffset = xpos - lastX;
+	float yoffset = lastY - ypos;
+	lastX = xpos;
+	lastY = ypos;
+
+	float sensitivity = 0.1f;
+	xoffset *= sensitivity;
+	yoffset *= sensitivity;
+
+	camara.yaw += xoffset;
+	camara.pitch += yoffset;
+
+	if (camara.pitch > 89.0f)
+		camara.pitch = 89.0f;
+	if (camara.pitch < -89.0f)
+		camara.pitch = -89.0f;
+
+	glm::vec3 direction;
+	direction.x = cos(glm::radians(camara.yaw)) * cos(glm::radians(camara.pitch));
+	direction.y = sin(glm::radians(camara.pitch));
+	direction.z = sin(glm::radians(camara.yaw)) * cos(glm::radians(camara.pitch));
+	camara.direction = camara.position + glm::normalize(direction);
 }
 
 
@@ -453,10 +486,7 @@ void main() {
 	unsigned char* textureInfoRock = stbi_load("Assets/Textures/rock.png", &width, &height, &nrChannels, 0);
 
 	//Inicializamos GLEW y controlamos errores
-	if (glewInit() == GLEW_OK) {
-
-		
-		Camera camara;
+	if (glewInit() == GLEW_OK) {	
 
 		//Compilar shaders
 		ShaderProgram myFirstProgram;
@@ -641,6 +671,9 @@ void main() {
 		//Desvinculamos VAO
 		glBindVertexArray(0);
 
+
+	
+
 		ShaderProgram WhiteProgram;
 		WhiteProgram.vertexShader = LoadVertexShader("MyFirstVertexShader.glsl");
 		WhiteProgram.geometryShader = LoadGeometryShader("MyFirstGeometryShader.glsl");
@@ -663,6 +696,12 @@ void main() {
 			//Pulleamos los eventos (botones, teclas, mouse...)
 			glfwPollEvents();
 			glfwSetKeyCallback(window, keyEvents);
+
+
+			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+			glfwSetCursorPosCallback(window, mouse_callback);
+
 
 			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
 				camara.position.z -= 0.01f;
@@ -854,6 +893,7 @@ void main() {
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[1], "view"), 1, GL_FALSE, glm::value_ptr(view));
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[1], "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
+
 			// Dibujar el cubo
 			glBindVertexArray(vaoCubo);
 			glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -878,3 +918,4 @@ void main() {
 	glfwTerminate();
 
 }
+
