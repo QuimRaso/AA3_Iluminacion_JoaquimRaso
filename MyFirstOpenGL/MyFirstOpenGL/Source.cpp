@@ -27,10 +27,15 @@ struct GameObject
 
 };
 
+float lastX = 400.0f; 
+float lastY = 300.0f; 
+bool firstMouse = true;
+
+
 struct Camera 
 {
 	glm::vec3 position = glm::vec3(0.f,2.f,5.f);
-	glm::vec3 direction = position;
+	glm::vec3 direction;
 	glm::vec3 localVectorUp = glm::vec3(0.f,1.f,0.f);
 	glm::vec3 initialPosition = glm::vec3(0.f, 2.f, 5.f);
 	float dollyZoomSpeed = 0.01f;
@@ -42,7 +47,7 @@ struct Camera
 	float aspectRatio;
 	float pitch = 0;
 	float yaw = 0;
-	glm::vec3 cameraFront;
+	glm::vec3 cameraFront = glm::vec3(0.f, 0.f, -1.f);
 };
 
 struct ShaderProgram {
@@ -85,19 +90,19 @@ glm::mat4 GenerateScaleMatrix(glm::vec3 scaleAxis)
 
 }
 
-void keyEvents(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-	
-}
-
 Camera camara;
 
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
-	float lastX = xpos;
-	float lastY = ypos;
+	if (firstMouse) {
+		lastX = xpos;
+		lastY = ypos;
+		firstMouse = false;
+	}
+
 	float xoffset = xpos - lastX;
 	float yoffset = lastY - ypos;
+
 	lastX = xpos;
 	lastY = ypos;
 
@@ -118,6 +123,31 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	direction.y = sin(glm::radians(camara.pitch));
 	direction.z = sin(glm::radians(camara.yaw)) * cos(glm::radians(camara.pitch));
 	camara.direction = camara.position + glm::normalize(direction);
+}
+
+void processInput(GLFWwindow* window) {
+	float cameraSpeed = 0.05f;
+
+	// Movimiento hacia adelante y hacia atrás
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+		camara.position += cameraSpeed * camara.direction;
+	}
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+		camara.position -= cameraSpeed * camara.direction;
+	}
+
+	// Calcular la dirección hacia la derecha 
+	glm::vec3 right = glm::normalize(glm::cross(camara.direction, glm::vec3(0.0f, 1.0f, 0.0f)));
+
+	// Movimiento lateral
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+		camara.position += cameraSpeed * right;
+		camara.direction += cameraSpeed * right;
+	}
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+		camara.position -= cameraSpeed * right;
+		camara.direction -= cameraSpeed * right;
+	}
 }
 
 
@@ -447,6 +477,7 @@ GLuint CreateProgram(const ShaderProgram& shaders) {
 
 void main() {
 
+
 	//Definir semillas del rand según el tiempo
 	srand(static_cast<unsigned int>(time(NULL)));
 
@@ -695,15 +726,12 @@ void main() {
 
 			//Pulleamos los eventos (botones, teclas, mouse...)
 			glfwPollEvents();
-			glfwSetKeyCallback(window, keyEvents);
-
-
+			glfwMakeContextCurrent(window);
 			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
 			glfwSetCursorPosCallback(window, mouse_callback);
+			processInput(window);
 
-
-			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+			/*if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
 				camara.position.z -= 0.01f;
 			}
 			if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
@@ -716,10 +744,8 @@ void main() {
 
 			if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
 				camara.position.x += 0.01f;
-			}
-			 
-			
-			
+			}*/
+						
 			//Limpiamos los buffers
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 			glUniform2f(glGetUniformLocation(compiledPrograms[1], "windowSize"), WINDOW_WIDTH, WINDOW_HEIGHT);
