@@ -125,30 +125,30 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	camara.direction = camara.position + glm::normalize(direction);
 }
 
-void processInput(GLFWwindow* window) {
-	float cameraSpeed = 0.05f;
-
-	// Movimiento hacia adelante y hacia atrás
-	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-		camara.position += cameraSpeed * camara.direction;
-	}
-	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-		camara.position -= cameraSpeed * camara.direction;
-	}
-
-	// Calcular la dirección hacia la derecha 
-	glm::vec3 right = glm::normalize(glm::cross(camara.direction, glm::vec3(0.0f, 1.0f, 0.0f)));
-
-	// Movimiento lateral
-	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-		camara.position += cameraSpeed * right;
-		camara.direction += cameraSpeed * right;
-	}
-	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-		camara.position -= cameraSpeed * right;
-		camara.direction -= cameraSpeed * right;
-	}
-}
+//void processInput(GLFWwindow* window) {
+//	float cameraSpeed = 0.05f;
+//
+//	// Movimiento hacia adelante y hacia atrás
+//	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+//		camara.position += cameraSpeed * camara.direction;
+//	}
+//	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+//		camara.position -= cameraSpeed * camara.direction;
+//	}
+//
+//	// Calcular la dirección hacia la derecha 
+//	glm::vec3 right = glm::normalize(glm::cross(camara.direction, glm::vec3(0.0f, 1.0f, 0.0f)));
+//
+//	// Movimiento lateral
+//	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+//		camara.position += cameraSpeed * right;
+//		camara.direction += cameraSpeed * right;
+//	}
+//	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+//		camara.position -= cameraSpeed * right;
+//		camara.direction -= cameraSpeed * right;
+//	}
+//}
 
 
 //Funcion que leera un .obj y devolvera un modelo para poder ser renderizado
@@ -515,6 +515,7 @@ void main() {
 	int width, height, nrChannels;
 	unsigned char* textureInfo = stbi_load("Assets/Textures/troll.png", &width, &height, &nrChannels, 0);
 	unsigned char* textureInfoRock = stbi_load("Assets/Textures/rock.png", &width, &height, &nrChannels, 0);
+	unsigned char* textureInfotower = stbi_load("Assets/Textures/tower.png", &width, &height, &nrChannels, 0);
 
 	//Inicializamos GLEW y controlamos errores
 	if (glewInit() == GLEW_OK) {	
@@ -593,6 +594,49 @@ void main() {
 
 		//Liberar memoria de la imagen cargada
 		stbi_image_free(textureInfoRock);
+
+		//Definimos color para limpiar el buffer de color
+		glClearColor(0.f, 255.f, 255.f, 1.f);
+
+		//Definimos modo de dibujo para cada cara
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+		//Indicar a la tarjeta GPU que programa debe usar
+		glUseProgram(compiledPrograms[0]);
+
+
+		//tower
+
+		//Cargo Modelo
+		models.push_back(LoadOBJModel("Assets/Models/tower.obj"));
+
+		//Compìlar programa
+		compiledPrograms.push_back(CreateProgram(myFirstProgram));
+
+		//Definimos canal de textura activo
+		glActiveTexture(GL_TEXTURE2);
+
+		//Generar textura
+		GLuint textureIDtower;
+		glGenTextures(1, &textureIDtower);
+
+		//Vinculamos texture
+		glBindTexture(GL_TEXTURE_2D, textureIDtower);
+
+		//Configurar textura
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		//Cargar imagen a la textura
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, textureInfotower);
+
+		//Generar mipmap
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+		//Liberar memoria de la imagen cargada
+		stbi_image_free(textureInfotower);
 
 		//Definimos color para limpiar el buffer de color
 		glClearColor(0.f, 255.f, 255.f, 1.f);
@@ -729,27 +773,33 @@ void main() {
 			glfwMakeContextCurrent(window);
 			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 			glfwSetCursorPosCallback(window, mouse_callback);
-			processInput(window);
-
-			/*if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-				camara.position.z -= 0.01f;
+			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+			{
+				camara.position.z -= 0.1f;
+				camara.direction.z -= 0.1f;
 			}
-			if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-				camara.position.z += 0.01f;
+			if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+			{
+				camara.position.z += 0.1f;
+				camara.direction.z += 0.1f;
+			}
+			if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+			{
+				camara.position.x += 0.1f;
+				camara.direction.x += 0.1f;
+			}
+			if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+			{
+				camara.position.x -= 0.1f;
+				camara.direction.x -= 0.1f;
 			}
 
-			if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-				camara.position.x -= 0.01f;
-			}
-
-			if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-				camara.position.x += 0.01f;
-			}*/
-						
+					
 			//Limpiamos los buffers
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 			glUniform2f(glGetUniformLocation(compiledPrograms[1], "windowSize"), WINDOW_WIDTH, WINDOW_HEIGHT);
 			glUseProgram(compiledPrograms[0]);
+
 			// <<<<<<<<<<<<<<<<<<<<<<<<<<TROLL ORIGINAL>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, textureID);
@@ -779,70 +829,33 @@ void main() {
 			models[0].Render();
 
 
-			// <<<<<<<<<<<<<<<<<<<<<<<<<<TROLL 1>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-
-			
-			glUseProgram(compiledPrograms[2]);
+			// <<<<<<<<<<<<<<<<<<<<<<<<<<Tower ORIGINAL>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, textureID);
-			glUniform1i(glGetUniformLocation(compiledPrograms[2], "textureSampler"), 0);
+			glBindTexture(GL_TEXTURE_2D, textureIDtower);
+			glUniform1i(glGetUniformLocation(compiledPrograms[0], "textureSampler"), 0);
 
 			//Definir la matriz de traslacion, rotacion y escalado
-			 translationMatrix = glm::translate(glm::mat4(1.f), glm::vec3(1.5f,1.f,0.f));
-			 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(-75.0f), glm::vec3(0.f, 1.f, 0.f));
-			 scaleMatrix = glm::scale(glm::mat4(1.f), glm::vec3(0.5f));
+			glm::mat4 translationMatrixt = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 1.f, -1.f));
+			glm::mat4 rotationMatrixt = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.f, 1.f, 0.f));
+			glm::mat4 scaleMatrixt = glm::scale(glm::mat4(1.f), glm::vec3(0.5f));
 
 			// Definir la matriz de vista
-			 view = glm::lookAt(camara.position, camara.direction, camara.localVectorUp);
-
-			 // Definir la matriz proyeccion
-			 projection = glm::perspective(glm::radians(camara.fFov), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, camara.fNear, camara.fFar);
-
-			 
-
-			//Asignar valores iniciales al programa
-			glUniform2f(glGetUniformLocation(compiledPrograms[2], "windowSize"), WINDOW_WIDTH, WINDOW_HEIGHT);
-
-
-			// Pasar las matrices
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "translationMatrix"), 1, GL_FALSE, glm::value_ptr(translationMatrix));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "rotationMatrix"), 1, GL_FALSE, glm::value_ptr(rotationMatrix));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "scaleMatrix"), 1, GL_FALSE, glm::value_ptr(scaleMatrix));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "view"), 1, GL_FALSE, glm::value_ptr(view));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-			models[0].Render();
-
-
-			// <<<<<<<<<<<<<<<<<<<<<<<<<<TROLL 2>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-			glUseProgram(compiledPrograms[3]);
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, textureID);
-			glUniform1i(glGetUniformLocation(compiledPrograms[3], "textureSampler"), 0);
-
-			//Definir la matriz de traslacion, rotacion y escalado
-			translationMatrix = glm::translate(glm::mat4(1.f), glm::vec3(-1.5f, 1.f, 0.f));
-			rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(75.0f), glm::vec3(0.f, 1.f, 0.f));
-			scaleMatrix = glm::scale(glm::mat4(1.f), glm::vec3(0.5f));
-
-			// Definir la matriz de vista
-			view = glm::lookAt(camara.position, camara.direction, camara.localVectorUp);
+			glm::mat4 viewt = glm::lookAt(camara.position, camara.direction, camara.localVectorUp);
 
 			// Definir la matriz proyeccion
-			projection = glm::perspective(glm::radians(camara.fFov), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, camara.fNear, camara.fFar);
+			glm::mat4 projectiont = glm::perspective(glm::radians(camara.fFov), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, camara.fNear, camara.fFar);
 
 			//Asignar valores iniciales al programa
-			glUniform2f(glGetUniformLocation(compiledPrograms[3], "windowSize"), WINDOW_WIDTH, WINDOW_HEIGHT);
+			glUniform2f(glGetUniformLocation(compiledPrograms[0], "windowSize"), WINDOW_WIDTH, WINDOW_HEIGHT);
 
 
 			// Pasar las matrices
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[3], "translationMatrix"), 1, GL_FALSE, glm::value_ptr(translationMatrix));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[3], "rotationMatrix"), 1, GL_FALSE, glm::value_ptr(rotationMatrix));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[3], "scaleMatrix"), 1, GL_FALSE, glm::value_ptr(scaleMatrix));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[3], "view"), 1, GL_FALSE, glm::value_ptr(view));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[3], "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-			models[0].Render();
-
-
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "translationMatrix"), 1, GL_FALSE, glm::value_ptr(translationMatrixt));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "rotationMatrix"), 1, GL_FALSE, glm::value_ptr(rotationMatrixt));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "scaleMatrix"), 1, GL_FALSE, glm::value_ptr(scaleMatrixt));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "view"), 1, GL_FALSE, glm::value_ptr(viewt));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "projection"), 1, GL_FALSE, glm::value_ptr(projectiont));
+			models[3].Render();
 
 			//// <<<<<<<<<<<<<<<<<<<<<<<<<<PIEDRA ORIGINAL>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 			glUseProgram(compiledPrograms[0]);
@@ -851,9 +864,9 @@ void main() {
 			glUniform1i(glGetUniformLocation(compiledPrograms[0], "textureSampler"), 1);
 
 			//Definir la matriz de traslacion, rotacion y escalado
-			glm::mat4 translationMatrix2 = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 1.f, 0.f));
-			glm::mat4 rotationMatrix2 = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.f, 0.f, 1.f));
-			glm::mat4 scaleMatrix2 = glm::scale(glm::mat4(1.f), glm::vec3(0.5f));
+			glm::mat4 translationMatrix2 = glm::translate(glm::mat4(1.f), glm::vec3(-1.8f, 0.85f, -0.8f));
+			glm::mat4 rotationMatrix2 = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.f, 1.f, 0.f));
+			glm::mat4 scaleMatrix2 = glm::scale(glm::mat4(1.f), glm::vec3(6.f, 0.2f, 6.f));
 
 			// Definir la matriz de vista
 			view = glm::lookAt(camara.position, camara.direction, camara.localVectorUp);
@@ -873,58 +886,7 @@ void main() {
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 			models[1].Render();
 
-
-			//// <<<<<<<<<<<<<<<<<<<<<<<<<<     NUBE   >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-			glUseProgram(compiledPrograms[2]);
-			glActiveTexture(GL_TEXTURE1);
-			glBindTexture(GL_TEXTURE_2D, textureID2);
-			glUniform1i(glGetUniformLocation(compiledPrograms[0], "textureSampler"), 1);
-
-			//Definir la matriz de traslacion, rotacion y escalado
-			 translationMatrix = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 3.f, -5.f));
-			 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.f, 0.f, 1.f));
-			scaleMatrix = glm::scale(glm::mat4(1.f), glm::vec3(1.f,2.f,0.5f));
-
-			view = glm::lookAt(camara.position, camara.direction, camara.localVectorUp);
-
-			// Definir la matriz proyeccion
-			projection = glm::perspective(glm::radians(camara.fFov), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, camara.fNear, camara.fFar);
-			//Asignar valores iniciales al programa
-			glUniform2f(glGetUniformLocation(compiledPrograms[2], "windowSize"), WINDOW_WIDTH, WINDOW_HEIGHT);
-
-			// Pasar las matrices
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "translationMatrix"), 1, GL_FALSE, glm::value_ptr(translationMatrix));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "rotationMatrix"), 1, GL_FALSE, glm::value_ptr(rotationMatrix));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "scaleMatrix"), 1, GL_FALSE, glm::value_ptr(scaleMatrix));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "view"), 1, GL_FALSE, glm::value_ptr(view));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-			models[1].Render();
-
-			////////////////////////////////////////////  CUBO  ////////////////////////////////////////////			
-			glUseProgram(compiledPrograms[1]);
-
-			// Definir matrices de transformación
-			glm::mat4 model = glm::mat4(1.0f);
-			model = glm::translate(model, glm::vec3(0.0f, 1.5f, 3.0f));
-			model = glm::scale(model, glm::vec3(10.f,1.f,10.f));
-
-			view = glm::lookAt(camara.position, camara.direction, camara.localVectorUp);
-
-			// Definir la matriz proyeccion
-			projection = glm::perspective(glm::radians(camara.fFov), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, camara.fNear, camara.fFar);
-
-			// Pasar matrices a los shaders
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[1], "model"), 1, GL_FALSE, glm::value_ptr(model));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[1], "view"), 1, GL_FALSE, glm::value_ptr(view));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[1], "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-
-
-			// Dibujar el cubo
-			glBindVertexArray(vaoCubo);
-			glDrawArrays(GL_TRIANGLES, 0, 36);
-			glBindVertexArray(0);
-
+			
 			//Cambiamos buffers
 			glFlush();
 			glfwSwapBuffers(window);
