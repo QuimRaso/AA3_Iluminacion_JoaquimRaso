@@ -10,7 +10,7 @@ out vec3 normalsGeometryShader;
 void main() {
 
     uvsGeometryShader = uvsVertexShader;
-    normalsGeometryShader = normalsVertexShader;
+    normalsGeometryShader = normalize(normalsVertexShader);
 
     gl_Position = vec4(posicion, 1.0);
 

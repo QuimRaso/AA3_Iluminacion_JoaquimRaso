@@ -25,13 +25,13 @@ void main(){
 
 
 		uvsFragmentShader = uvsGeometryShader[i];
-		normalsFragmentShader = mat3(rotationMatrix) * normalsGeometryShader[i];
+		normalsFragmentShader = mat3(rotationMatrix) * normalize(normalsGeometryShader[i]);
 
 
 		EmitVertex();
 	}
 
-	primitivePosition = model * ((gl_in[0].gl_Position + gl_in[1].gl_Position + gl_in[2].gl_Position)*0.33);
+	//primitivePosition = model * ((gl_in[0].gl_Position + gl_in[1].gl_Position + gl_in[2].gl_Position)*0.33);
 
 
 	EndPrimitive();

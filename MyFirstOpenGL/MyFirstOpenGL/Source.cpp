@@ -84,6 +84,7 @@ bool detailPlane = false;
 bool dollyZoom = false;
 bool first = true;
 bool linterna = false;
+bool keyFPressed = false;
 bool sunLight = true;
 bool moonLight = false;
 bool noche = false;
@@ -825,17 +826,24 @@ void main() {
 				moonLight = true;
 			}
 
-			if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
+
+			int state = glfwGetKey(window, GLFW_KEY_F);
+
+			// Comprueba si la tecla F está presionada en este ciclo y no lo estaba en el ciclo anterior
+			if (state == GLFW_PRESS && !keyFPressed)
 			{
-				if (linterna) 
-				{
-					linterna = false;
-					
-				}
-				else 
-				{
-					linterna = true;
-				}
+				// Cambia el estado de la linterna
+				linterna = !linterna;
+
+				// Actualiza el estado de la tecla F a presionada
+				keyFPressed = true;
+			}
+
+			// Comprueba si la tecla F no está presionada para actualizar el estado de la tecla
+			if (state == GLFW_RELEASE)
+			{
+				// Actualiza el estado de la tecla F a no presionada
+				keyFPressed = false;
 			}
 
 			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) 

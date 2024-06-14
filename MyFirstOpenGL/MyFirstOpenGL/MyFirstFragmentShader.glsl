@@ -69,7 +69,7 @@ void main() {
         float theta = dot(lightDir, normalize(flashLightDirection));
         
         float epsilon = cos(innerConeAngle) - cos(outerConeAngle);
-        float intensity = clamp((theta - cos(outerConeAngle)) / epsilon, 0.0, 0.5);
+        float intensity = clamp((theta - cos(outerConeAngle)) / epsilon, 0.0, 1.0);
 
         // Atenuación por distancia
         float attenuation = 5.0 / (distance * distance);
