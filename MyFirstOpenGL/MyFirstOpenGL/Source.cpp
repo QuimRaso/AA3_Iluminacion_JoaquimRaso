@@ -714,9 +714,9 @@ void main() {
 		glUseProgram(compiledPrograms[0]);
 
 		//MODELO BOTAMON
-		unsigned char* textureInfoBota = stbi_load("Assets/Textures/star.png", &width, &height, &nrChannels, 0);
+		unsigned char* textureInfoBota = stbi_load("Assets/Textures/grass.png", &width, &height, &nrChannels, 0);
 		//Cargo Modelo
-		models.push_back(LoadOBJModel("Assets/Models/star.obj"));
+		models.push_back(LoadOBJModel("Assets/Models/grass.obj"));
 
 		//Definimos canal de textura activo
 		glActiveTexture(GL_TEXTURE2);
@@ -752,15 +752,6 @@ void main() {
 		//Indicar a la tarjeta GPU que programa debe usar
 		glUseProgram(compiledPrograms[0]);
 
-
-
-		ShaderProgram WhiteProgram;
-		WhiteProgram.vertexShader = LoadVertexShader("MyFirstVertexShader.glsl");
-		WhiteProgram.geometryShader = LoadGeometryShader("MyFirstGeometryShader.glsl");
-		WhiteProgram.fragmentShader = LoadFragmentShader("FragmentShaderBlanco.glsl");
-
-		//Compìlar programa
-		compiledPrograms.push_back(CreateProgram(WhiteProgram));
 
 		ShaderProgram ColorProgram;
 		ColorProgram.vertexShader = LoadVertexShader("MyFirstVertexShader.glsl");
@@ -915,7 +906,7 @@ void main() {
 			models[0].Render();
 			glDisable(GL_POLYGON_OFFSET_FILL);
 
-			// <<<<<<<<<<<<<<<<<<<<<<<<<<ESTRELLA>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+			// <<<<<<<<<<<<<<<<<<<<<<<<<<GRASS>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 			
 			glUseProgram(compiledPrograms[0]);
@@ -957,7 +948,7 @@ void main() {
 			 models[2].Render();
 
 
-			// <<<<<<<<<<<<<<<<<<<<<<<<<<Estrella 2>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+			// <<<<<<<<<<<<<<<<<<<<<<<<<<GRASS 2>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 			 glUseProgram(compiledPrograms[0]);
 			 glActiveTexture(GL_TEXTURE2);
 			 glBindTexture(GL_TEXTURE_2D, textureID3);
