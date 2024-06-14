@@ -48,15 +48,15 @@ struct Camera
 };
 Camera camara;
 
-struct Star
+struct Astro
 {
 	glm::vec3 position;
 	float fAngularVelocity = 0.0000000005f;
 
 	float angle = 0.5f;
 };
-Star sun;
-Star moon;
+Astro sun;
+Astro moon;
 
 struct SpawnPoint
 {
@@ -81,7 +81,6 @@ std::vector<SpawnPoint> modelPoints;
 bool isometric = true;
 bool generalPlane = false;
 bool detailPlane = false;
-bool dollyZoom = false;
 bool first = true;
 bool linterna = false;
 bool keyFPressed = false;
@@ -115,12 +114,6 @@ glm::mat4 GenerateRotationMatrix(glm::vec3 axis, float fDegrees)
 glm::mat4 GenerateScaleMatrix(glm::vec3 scaleAxis)
 {
 	return glm::scale(glm::mat4(1.0f), scaleAxis);
-
-}
-
-void keyEvents(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-
 
 }
 
@@ -753,16 +746,6 @@ void main() {
 		glUseProgram(compiledPrograms[0]);
 
 
-		ShaderProgram ColorProgram;
-		ColorProgram.vertexShader = LoadVertexShader("MyFirstVertexShader.glsl");
-		ColorProgram.geometryShader = LoadGeometryShader("MyFirstGeometryShader.glsl");
-		ColorProgram.fragmentShader = LoadFragmentShader("FragmentShaderColor.glsl");
-
-		//Compìlar programa
-		compiledPrograms.push_back(CreateProgram(ColorProgram));
-
-
-
 		float lastFrameTime = glfwGetTime();
 		sun.position = glm::vec3(0.0f, 0.0f, 10.0f);
 		moon.position = glm::vec3(0.0f, 0.0f, -10.0f);
@@ -784,13 +767,9 @@ void main() {
 			
 			//Pulleamos los eventos (botones, teclas, mouse...)
 			glfwPollEvents();
-			glfwSetKeyCallback(window, keyEvents);
 			glfwMakeContextCurrent(window);
 			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 			glfwSetCursorPosCallback(window, mouse_callback);
-
-
-
 			float currentFrameTime = glfwGetTime();
 			float deltaTime = currentFrameTime - lastFrameTime;
 			UpdateSunRotation(deltaTime);
@@ -865,7 +844,7 @@ void main() {
 			//Limpiamos los buffers
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
-			glUniform2f(glGetUniformLocation(compiledPrograms[1], "windowSize"), WINDOW_WIDTH, WINDOW_HEIGHT);
+			glUniform2f(glGetUniformLocation(compiledPrograms[0], "windowSize"), WINDOW_WIDTH, WINDOW_HEIGHT);
 			glUseProgram(compiledPrograms[0]);
 			// <<<<<<<<<<<<<<<<<<<<<<<<<<TROLL ORIGINAL>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 			glActiveTexture(GL_TEXTURE0);

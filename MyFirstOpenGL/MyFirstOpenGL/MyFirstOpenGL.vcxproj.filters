@@ -47,21 +47,6 @@
     <None Include="MyFirstFragmentShader.glsl">
       <Filter>Shaders\Fragment Shader</Filter>
     </None>
-    <None Include="FragmentShaderCube.glsl">
-      <Filter>Shaders\Fragment Shader</Filter>
-    </None>
-    <None Include="GeometryShaderCube.glsl">
-      <Filter>Shaders\Geometry Shader</Filter>
-    </None>
-    <None Include="VertexShaderCube.glsl">
-      <Filter>Shaders\Vertex Shader</Filter>
-    </None>
-    <None Include="FragmentShaderBlanco.glsl">
-      <Filter>Shaders\Fragment Shader</Filter>
-    </None>
-    <None Include="FragmentShaderColor.glsl">
-      <Filter>Shaders\Fragment Shader</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Model.h">
