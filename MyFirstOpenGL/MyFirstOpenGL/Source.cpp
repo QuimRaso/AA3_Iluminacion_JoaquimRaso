@@ -27,28 +27,45 @@ struct GameObject
 
 };
 
-float lastX = 400.0f; 
-float lastY = 300.0f; 
-bool firstMouse = true;
-
-
 struct Camera 
 {
 	glm::vec3 position = glm::vec3(0.f,2.f,5.f);
-	glm::vec3 direction;
+	glm::vec3 direction = position + glm::vec3(0.f,0.f,-10.f);
 	glm::vec3 localVectorUp = glm::vec3(0.f,1.f,0.f);
+	glm::vec3 localVectorFront = glm::vec3(0.f,0.f,-1.f);
 	glm::vec3 initialPosition = glm::vec3(0.f, 2.f, 5.f);
+	glm::vec3 offset = glm::vec3(0.f, 0.f, 0.5f);
 	float dollyZoomSpeed = 0.01f;
 	float fovSpeed = 0.1f;
 	float initialFov = 45.f;
 	float fFov = 45.f;
 	float fNear = 0.1f;
-	float fFar = 10.f;
+	float fFar = 1000.f;
 	float aspectRatio;
 	float pitch = 0;
 	float yaw = 0;
 	glm::vec3 cameraFront = glm::vec3(0.f, 0.f, -1.f);
 };
+Camera camara;
+
+struct Star
+{
+	glm::vec3 position;
+	float fAngularVelocity = 0.0000000005f;
+
+	float angle = 0.5f;
+};
+Star sun;
+Star moon;
+
+struct SpawnPoint
+{
+	glm::vec3 position;
+	glm::vec3 rotation;
+	float angle;
+
+};
+
 
 struct ShaderProgram {
 	GLuint vertexShader = 0;
@@ -58,12 +75,22 @@ struct ShaderProgram {
 
 std::vector<GLuint> compiledPrograms;
 std::vector<Model> models;
-GameObject cube;
+std::vector<SpawnPoint> spawnPoints;
+std::vector<SpawnPoint> modelPoints;
+
 bool isometric = true;
 bool generalPlane = false;
 bool detailPlane = false;
 bool dollyZoom = false;
 bool first = true;
+bool linterna = false;
+bool sunLight = true;
+bool moonLight = false;
+bool noche = false;
+float lastX = 400.0f;
+float lastY = 300.0f;
+float camaraSpeed = 0.05f;
+bool firstMouse = true;
 
 void Resize_Window(GLFWwindow* window, int iFrameBufferWidth, int iFrameBufferHeight) {
 
@@ -90,8 +117,11 @@ glm::mat4 GenerateScaleMatrix(glm::vec3 scaleAxis)
 
 }
 
-Camera camara;
+void keyEvents(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
 
+
+}
 
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	if (firstMouse) {
@@ -123,32 +153,78 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	direction.y = sin(glm::radians(camara.pitch));
 	direction.z = sin(glm::radians(camara.yaw)) * cos(glm::radians(camara.pitch));
 	camara.direction = camara.position + glm::normalize(direction);
+	camara.localVectorFront = glm::normalize(direction);
+
 }
 
-//void processInput(GLFWwindow* window) {
-//	float cameraSpeed = 0.05f;
-//
-//	// Movimiento hacia adelante y hacia atrás
-//	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-//		camara.position += cameraSpeed * camara.direction;
-//	}
-//	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-//		camara.position -= cameraSpeed * camara.direction;
-//	}
-//
-//	// Calcular la dirección hacia la derecha 
-//	glm::vec3 right = glm::normalize(glm::cross(camara.direction, glm::vec3(0.0f, 1.0f, 0.0f)));
-//
-//	// Movimiento lateral
-//	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-//		camara.position += cameraSpeed * right;
-//		camara.direction += cameraSpeed * right;
-//	}
-//	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-//		camara.position -= cameraSpeed * right;
-//		camara.direction -= cameraSpeed * right;
-//	}
-//}
+void UpdateSunRotation(float deltaTime) {
+	// Define el punto alrededor del cual rotará el Sol (por ejemplo, el centro del sistema de coordenadas)
+	glm::vec3 rotationCenter = glm::vec3(0.f, 1.f, -1.f);
+
+	// Define el eje y el ángulo de rotación
+	glm::vec3 rotationAxis = glm::vec3(1.0f, 0.0f, 0.0f); // Rotación alrededor del eje Y
+	float rotationAngle = sun.angle + sun.fAngularVelocity * deltaTime; // Calcula el nuevo ángulo
+
+	// Paso 1: Traslada el Sol al origen del sistema de coordenadas
+	glm::mat4 translateToOrigin = GenerateTranslationMatrix(-rotationCenter);
+
+	// Paso 2: Aplica la rotación
+	glm::mat4 rotation = GenerateRotationMatrix(rotationAxis, rotationAngle);
+
+	// Paso 3: Devuelve el Sol a su posición original
+	glm::mat4 translateBack = GenerateTranslationMatrix(rotationCenter);
+
+	// Combina las transformaciones
+	glm::mat4 transform = translateBack * rotation * translateToOrigin;
+
+	// Aplica la transformación a la posición del Sol
+	sun.position = glm::vec3(transform * glm::vec4(sun.position, 1.0f));
+
+
+	// Actualiza el ángulo del Sol
+	sun.angle = rotationAngle;
+}
+
+void UpdateMoonRotation(float deltaTime) {
+	// Define el punto alrededor del cual rotará el Sol (por ejemplo, el centro del sistema de coordenadas)
+	glm::vec3 rotationCenter = glm::vec3(0.f, 1.f, -1.f);
+
+	// Define el eje y el ángulo de rotación
+	glm::vec3 rotationAxis = glm::vec3(1.0f, 0.0f, 0.0f); // Rotación alrededor del eje Y
+	float rotationAngle = moon.angle + moon.fAngularVelocity * deltaTime; // Calcula el nuevo ángulo
+
+	// Paso 1: Traslada el Sol al origen del sistema de coordenadas
+	glm::mat4 translateToOrigin = GenerateTranslationMatrix(-rotationCenter);
+
+	// Paso 2: Aplica la rotación
+	glm::mat4 rotation = GenerateRotationMatrix(rotationAxis, rotationAngle);
+
+	// Paso 3: Devuelve el Sol a su posición original
+	glm::mat4 translateBack = GenerateTranslationMatrix(rotationCenter);
+
+	// Combina las transformaciones
+	glm::mat4 transform = translateBack * rotation * translateToOrigin;
+
+	// Aplica la transformación a la posición del Sol
+	moon.position = glm::vec3(transform * glm::vec4(moon.position, 1.0f));
+
+
+	// Actualiza el ángulo del Sol
+	moon.angle = rotationAngle;
+}
+
+SpawnPoint RandomSpawnpoint(std::vector<SpawnPoint> spawnPoints)
+{
+	
+
+	// Generate a random index within the bounds of the vector
+	int randomIndex = std::rand() % spawnPoints.size();
+
+	// Return the spawn point at the random index
+	return spawnPoints[randomIndex];
+
+
+}
 
 
 //Funcion que leera un .obj y devolvera un modelo para poder ser renderizado
@@ -477,7 +553,6 @@ GLuint CreateProgram(const ShaderProgram& shaders) {
 
 void main() {
 
-
 	//Definir semillas del rand según el tiempo
 	srand(static_cast<unsigned int>(time(NULL)));
 
@@ -511,26 +586,58 @@ void main() {
 	//Indicamos lado del culling
 	glEnable(GL_DEPTH_TEST);
 
+	glEnable(GL_POLYGON_OFFSET_FILL);
+
+
 	//Leer textura
 	int width, height, nrChannels;
-	unsigned char* textureInfo = stbi_load("Assets/Textures/troll.png", &width, &height, &nrChannels, 0);
-	unsigned char* textureInfoRock = stbi_load("Assets/Textures/rock.png", &width, &height, &nrChannels, 0);
-	unsigned char* textureInfotower = stbi_load("Assets/Textures/tower.png", &width, &height, &nrChannels, 0);
 
 	//Inicializamos GLEW y controlamos errores
-	if (glewInit() == GLEW_OK) {	
+	if (glewInit() == GLEW_OK) {
+
+		//genero spawnpoints
+		SpawnPoint point0,point1,point2,point3,point4;
+		//punto 0
+		point0.position = glm::vec3(1.5f, 1.f, 0.f);
+		point0.rotation = glm::vec3(0.f, 1.f, 0.f);
+		point0.angle = -75.0f;
+		//punto 1
+		point1.position = glm::vec3(-1.5f, 1.f, 0.f);
+		point1.rotation = glm::vec3(0.f, 1.f, 0.f);
+		point1.angle = 75.0f;
+		//punto 2
+		point2.position = glm::vec3(1.f, 1.f, -2.f);
+		point2.rotation = glm::vec3(0.f, 1.f, 0.f);
+		point2.angle = 45.0f;
+		//punto 3
+		point3.position = glm::vec3(0.0f, 1.f, 1.f);
+		point3.rotation = glm::vec3(0.f, 1.f, 0.f);
+		point3.angle = 30.0f;
+		//punto 4
+		point4.position = glm::vec3(-1.f, 1.f, 2.f);
+		point4.rotation = glm::vec3(0.f, 1.f, 0.f);
+		point2.angle = -45.0f;
+
+		spawnPoints.push_back(point0);
+		spawnPoints.push_back(point1);
+		spawnPoints.push_back(point2);
+		spawnPoints.push_back(point3);
+		spawnPoints.push_back(point4);
+
 
 		//Compilar shaders
-		ShaderProgram myFirstProgram;
-		myFirstProgram.vertexShader = LoadVertexShader("MyFirstVertexShader.glsl");
-		myFirstProgram.geometryShader = LoadGeometryShader("MyFirstGeometryShader.glsl");
-		myFirstProgram.fragmentShader = LoadFragmentShader("MyFirstFragmentShader.glsl");
+		ShaderProgram illuminationProgram;
+		illuminationProgram.vertexShader = LoadVertexShader("MyFirstVertexShader.glsl");
+		illuminationProgram.geometryShader = LoadGeometryShader("MyFirstGeometryShader.glsl");
+		illuminationProgram.fragmentShader = LoadFragmentShader("MyFirstFragmentShader.glsl");
 
+
+		unsigned char* textureInfo = stbi_load("Assets/Textures/troll.png", &width, &height, &nrChannels, 0);
 		//Cargo Modelo
 		models.push_back(LoadOBJModel("Assets/Models/troll.obj"));
 
 		//Compìlar programa
-		compiledPrograms.push_back(CreateProgram(myFirstProgram));
+		compiledPrograms.push_back(CreateProgram(illuminationProgram));
 
 		//Definimos canal de textura activo
 		glActiveTexture(GL_TEXTURE0);
@@ -567,6 +674,7 @@ void main() {
 		glUseProgram(compiledPrograms[0]);
 
 		//MODELO 2
+		unsigned char* textureInfoRock = stbi_load("Assets/Textures/rock.png", &width, &height, &nrChannels, 0);
 		//Cargo Modelo
 		models.push_back(LoadOBJModel("Assets/Models/rock.obj"));
 
@@ -604,24 +712,20 @@ void main() {
 		//Indicar a la tarjeta GPU que programa debe usar
 		glUseProgram(compiledPrograms[0]);
 
-
-		//tower
-
+		//MODELO BOTAMON
+		unsigned char* textureInfoBota = stbi_load("Assets/Textures/star.png", &width, &height, &nrChannels, 0);
 		//Cargo Modelo
-		models.push_back(LoadOBJModel("Assets/Models/tower.obj"));
-
-		//Compìlar programa
-		compiledPrograms.push_back(CreateProgram(myFirstProgram));
+		models.push_back(LoadOBJModel("Assets/Models/star.obj"));
 
 		//Definimos canal de textura activo
 		glActiveTexture(GL_TEXTURE2);
 
 		//Generar textura
-		GLuint textureIDtower;
-		glGenTextures(1, &textureIDtower);
+		GLuint textureID3;
+		glGenTextures(1, &textureID3);
 
 		//Vinculamos texture
-		glBindTexture(GL_TEXTURE_2D, textureIDtower);
+		glBindTexture(GL_TEXTURE_2D, textureID3);
 
 		//Configurar textura
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -630,13 +734,13 @@ void main() {
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 		//Cargar imagen a la textura
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, textureInfotower);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, textureInfoBota);
 
 		//Generar mipmap
 		glGenerateMipmap(GL_TEXTURE_2D);
 
 		//Liberar memoria de la imagen cargada
-		stbi_image_free(textureInfotower);
+		stbi_image_free(textureInfoBota);
 
 		//Definimos color para limpiar el buffer de color
 		glClearColor(0.f, 255.f, 255.f, 1.f);
@@ -648,106 +752,6 @@ void main() {
 		glUseProgram(compiledPrograms[0]);
 
 
-		////////////////////////////////////////////  CUBO  ////////////////////////////////////////////
-
-		//Declarar instancia de GameObject
-
-
-		//Declarar vec2 para definir el offset
-		glm::vec2 offset = glm::vec2(0.f, 0.f);
-
-		//Compilar shaders
-		ShaderProgram CuboProgram;
-		CuboProgram.vertexShader = LoadVertexShader("VertexShaderCube.glsl");
-		CuboProgram.geometryShader = LoadGeometryShader("GeometryShaderCube.glsl");
-		CuboProgram.fragmentShader = LoadFragmentShader("FragmentShaderCube.glsl");
-
-		//Compilar programa
-		compiledPrograms.push_back(CreateProgram(CuboProgram));
-
-		//Definimos color para limpiar el buffer de color
-		glClearColor(0.f, 255.f, 255.f, 1.f);
-
-		GLuint vaoCubo, vboCubo;
-
-		//Definimos cantidad de vao a crear y donde almacenarlos 
-		glGenVertexArrays(1, &vaoCubo);
-
-		//Indico que el VAO activo de la GPU es el que acabo de crear
-		glBindVertexArray(vaoCubo);
-
-		//Definimos cantidad de vbo a crear y donde almacenarlos
-		glGenBuffers(1, &vboCubo);
-
-		//Indico que el VBO activo es el que acabo de crear y que almacenará un array. Todos los VBO que genere se asignaran al último VAO que he hecho glBindVertexArray
-		glBindBuffer(GL_ARRAY_BUFFER, vboCubo);
-
-		//Posición X e Y del punto
-		GLfloat cubo[] = {
-			-0.5f, -0.5f, -0.5f, // Bottom-left
-	 0.5f, -0.5f, -0.5f, // Bottom-right
-	 0.5f,  0.5f, -0.5f, // Top-right
-	 0.5f,  0.5f, -0.5f, // Top-right
-	-0.5f,  0.5f, -0.5f, // Top-left
-	-0.5f, -0.5f, -0.5f, // Bottom-left
-
-	-0.5f, -0.5f,  0.5f, // Bottom-left
-	 0.5f, -0.5f,  0.5f, // Bottom-right
-	 0.5f,  0.5f,  0.5f, // Top-right
-	 0.5f,  0.5f,  0.5f, // Top-right
-	-0.5f,  0.5f,  0.5f, // Top-left
-	-0.5f, -0.5f,  0.5f, // Bottom-left
-
-	-0.5f,  0.5f,  0.5f, // Top-left
-	-0.5f,  0.5f, -0.5f, // Top-right
-	-0.5f, -0.5f, -0.5f, // Bottom-right
-	-0.5f, -0.5f, -0.5f, // Bottom-right
-	-0.5f, -0.5f,  0.5f, // Bottom-left
-	-0.5f,  0.5f,  0.5f, // Top-left
-
-	 0.5f,  0.5f,  0.5f, // Top-left
-	 0.5f,  0.5f, -0.5f, // Top-right
-	 0.5f, -0.5f, -0.5f, // Bottom-right
-	 0.5f, -0.5f, -0.5f, // Bottom-right
-	 0.5f, -0.5f,  0.5f, // Bottom-left
-	 0.5f,  0.5f,  0.5f, // Top-left
-
-	-0.5f, -0.5f, -0.5f, // Bottom-left
-	 0.5f, -0.5f, -0.5f, // Bottom-right
-	 0.5f, -0.5f,  0.5f, // Top-right
-	 0.5f, -0.5f,  0.5f, // Top-right
-	-0.5f, -0.5f,  0.5f, // Top-left
-	-0.5f, -0.5f, -0.5f, // Bottom-left
-
-	-0.5f,  0.5f, -0.5f, // Bottom-left
-	 0.5f,  0.5f, -0.5f, // Bottom-right
-	 0.5f,  0.5f,  0.5f, // Top-right
-	 0.5f,  0.5f,  0.5f, // Top-right
-	-0.5f,  0.5f,  0.5f, // Top-left
-	-0.5f,  0.5f, -0.5f  // Bottom-left
-		};
-
-
-		//Definimos modo de dibujo para cada cara
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-		//Ponemos los valores en el VBO creado
-		glBufferData(GL_ARRAY_BUFFER, sizeof(cubo), cubo, GL_STATIC_DRAW);
-
-		//Indicamos donde almacenar y como esta distribuida la información
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(GLfloat), (GLvoid*)0);
-
-		//Indicamos que la tarjeta gráfica puede usar el atributo 0
-		glEnableVertexAttribArray(0);
-
-		//Desvinculamos VBO
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-		//Desvinculamos VAO
-		glBindVertexArray(0);
-
-
-	
 
 		ShaderProgram WhiteProgram;
 		WhiteProgram.vertexShader = LoadVertexShader("MyFirstVertexShader.glsl");
@@ -765,41 +769,105 @@ void main() {
 		//Compìlar programa
 		compiledPrograms.push_back(CreateProgram(ColorProgram));
 
+
+
+		float lastFrameTime = glfwGetTime();
+		sun.position = glm::vec3(0.0f, 0.0f, 10.0f);
+		moon.position = glm::vec3(0.0f, 0.0f, -10.0f);
+
+		SpawnPoint modelPoint = RandomSpawnpoint(spawnPoints);
+		SpawnPoint modelPoint1 = RandomSpawnpoint(spawnPoints);
+		SpawnPoint modelPoint2 = RandomSpawnpoint(spawnPoints);
+		SpawnPoint modelPoint3 = RandomSpawnpoint(spawnPoints);
+
+		modelPoints.push_back(modelPoint);
+		modelPoints.push_back(modelPoint1);
+		modelPoints.push_back(modelPoint2);
+		modelPoints.push_back(modelPoint3);
+
+
 		//Generamos el game loop
 		while (!glfwWindowShouldClose(window)) {
 
+			
 			//Pulleamos los eventos (botones, teclas, mouse...)
 			glfwPollEvents();
+			glfwSetKeyCallback(window, keyEvents);
 			glfwMakeContextCurrent(window);
 			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 			glfwSetCursorPosCallback(window, mouse_callback);
-			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+
+
+
+			float currentFrameTime = glfwGetTime();
+			float deltaTime = currentFrameTime - lastFrameTime;
+			UpdateSunRotation(deltaTime);
+
+			if (sun.position.y < -5.0f) 
 			{
-				camara.position.z -= 0.1f;
-				camara.direction.z -= 0.1f;
+				sunLight = false;
+				noche = true;
+			}
+			else if (sun.position.y > -5.0f) 
+			{
+				sunLight = true;
+			}
+
+				UpdateMoonRotation(deltaTime);
+
+			if (moon.position.y < -5.0f)
+			{
+				moonLight = false;
+				
+			}
+			else if (moon.position.y > -5.0f)
+			{
+				moonLight = true;
+			}
+
+			if (glfwGetKey(window, GLFW_KEY_F) == GLFW_PRESS)
+			{
+				if (linterna) 
+				{
+					linterna = false;
+					
+				}
+				else 
+				{
+					linterna = true;
+				}
+			}
+
+			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) 
+			{
+				camara.position += camaraSpeed * camara.localVectorFront;
+				/*camara.position.z -= 0.05f;
+				camara.direction.z -= 0.05f;*/
 			}
 			if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
 			{
-				camara.position.z += 0.1f;
-				camara.direction.z += 0.1f;
+				camara.position -= camaraSpeed * camara.localVectorFront;
+				/*camara.position.z += 0.05f;
+				camara.direction.z += 0.05f;*/
 			}
 			if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
 			{
-				camara.position.x += 0.1f;
-				camara.direction.x += 0.1f;
+				camara.position += glm::normalize(glm::cross(camara.localVectorFront, camara.localVectorUp)) * camaraSpeed;
+				/*camara.position.x += 0.05f;
+				camara.direction.x += 0.05f*/;
 			}
 			if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
 			{
-				camara.position.x -= 0.1f;
-				camara.direction.x -= 0.1f;
+				camara.position -= glm::normalize(glm::cross(camara.localVectorFront, camara.localVectorUp)) * camaraSpeed;
+				/*camara.position.x -= 0.05f;
+				camara.direction.x -= 0.05f;*/
 			}
 
-					
 			//Limpiamos los buffers
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
 			glUniform2f(glGetUniformLocation(compiledPrograms[1], "windowSize"), WINDOW_WIDTH, WINDOW_HEIGHT);
 			glUseProgram(compiledPrograms[0]);
-
 			// <<<<<<<<<<<<<<<<<<<<<<<<<<TROLL ORIGINAL>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, textureID);
@@ -811,7 +879,9 @@ void main() {
 			glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.f), glm::vec3(0.5f));
 
 			// Definir la matriz de vista
-			glm::mat4 view = glm::lookAt(camara.position, camara.direction, camara.localVectorUp);
+			glm::mat4 view = glm::lookAt(camara.position, camara.position + camara.localVectorFront, camara.localVectorUp);
+			//glm::mat4 view = glm::lookAt(camara.position, camara.direction, camara.localVectorUp);
+			view = view * GenerateTranslationMatrix(camara.offset);
 
 			// Definir la matriz proyeccion
 			glm::mat4 projection = glm::perspective(glm::radians(camara.fFov), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, camara.fNear, camara.fFar);
@@ -826,36 +896,97 @@ void main() {
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "scaleMatrix"), 1, GL_FALSE, glm::value_ptr(scaleMatrix));
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "view"), 1, GL_FALSE, glm::value_ptr(view));
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+			glUniform1i(glGetUniformLocation(compiledPrograms[0], "linterna"), linterna);
+			glUniform1i(glGetUniformLocation(compiledPrograms[0], "sun"), sunLight);
+			glUniform1i(glGetUniformLocation(compiledPrograms[0], "moon"), moonLight);
+			glUniform3fv(glGetUniformLocation(compiledPrograms[0], "sunLight"), 1, glm::value_ptr(sun.position));
+			glUniform3fv(glGetUniformLocation(compiledPrograms[0], "flashLight"), 1, glm::value_ptr(camara.position));
+			glUniform3fv(glGetUniformLocation(compiledPrograms[0], "flashLightDirection"), 1, glm::value_ptr(camara.direction));
+			glUniform3fv(glGetUniformLocation(compiledPrograms[0], "moonLight"), 1, glm::value_ptr(moon.position));
+			glPolygonOffset(1.0f, 1.0f);
 			models[0].Render();
+			glDisable(GL_POLYGON_OFFSET_FILL);
 
+			// <<<<<<<<<<<<<<<<<<<<<<<<<<ESTRELLA>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
-			// <<<<<<<<<<<<<<<<<<<<<<<<<<Tower ORIGINAL>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-			glActiveTexture(GL_TEXTURE0);
-			glBindTexture(GL_TEXTURE_2D, textureIDtower);
-			glUniform1i(glGetUniformLocation(compiledPrograms[0], "textureSampler"), 0);
+			
+			glUseProgram(compiledPrograms[0]);
+			glActiveTexture(GL_TEXTURE2);
+			glBindTexture(GL_TEXTURE_2D, textureID3);
+			glUniform1i(glGetUniformLocation(compiledPrograms[0], "textureSampler"), 2);
 
 			//Definir la matriz de traslacion, rotacion y escalado
-			glm::mat4 translationMatrixt = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 1.f, -1.f));
-			glm::mat4 rotationMatrixt = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.f, 1.f, 0.f));
-			glm::mat4 scaleMatrixt = glm::scale(glm::mat4(1.f), glm::vec3(0.5f));
+			 translationMatrix = glm::translate(glm::mat4(1.f), modelPoints[0].position);
+			 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(modelPoints[0].angle), modelPoints[0].rotation);
+			 scaleMatrix = glm::scale(glm::mat4(1.f), glm::vec3(0.05f));
 
 			// Definir la matriz de vista
-			glm::mat4 viewt = glm::lookAt(camara.position, camara.direction, camara.localVectorUp);
+			 //view = glm::lookAt(camara.position, camara.direction, camara.localVectorUp);
+
+			 // Definir la matriz proyeccion
+			 projection = glm::perspective(glm::radians(camara.fFov), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, camara.fNear, camara.fFar);
+
+			 
+
+			 //Asignar valores iniciales al programa
+			 glUniform2f(glGetUniformLocation(compiledPrograms[0], "windowSize"), WINDOW_WIDTH, WINDOW_HEIGHT);
+
+			 // Pasar las matrices
+			 glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "translationMatrix"), 1, GL_FALSE, glm::value_ptr(translationMatrix));
+			 glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "rotationMatrix"), 1, GL_FALSE, glm::value_ptr(rotationMatrix));
+			 glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "scaleMatrix"), 1, GL_FALSE, glm::value_ptr(scaleMatrix));
+			 glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "view"), 1, GL_FALSE, glm::value_ptr(view));
+			 glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+			 glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+			 glUniform1i(glGetUniformLocation(compiledPrograms[0], "linterna"), linterna);
+			 glUniform1i(glGetUniformLocation(compiledPrograms[0], "sun"), sunLight);
+			 glUniform1i(glGetUniformLocation(compiledPrograms[0], "moon"), moonLight);
+			 glUniform3fv(glGetUniformLocation(compiledPrograms[0], "sunLight"), 1, glm::value_ptr(sun.position));
+			 glUniform3fv(glGetUniformLocation(compiledPrograms[0], "flashLight"), 1, glm::value_ptr(camara.position));
+			 glUniform3fv(glGetUniformLocation(compiledPrograms[0], "flashLightDirection"), 1, glm::value_ptr(camara.direction));
+			 glUniform3fv(glGetUniformLocation(compiledPrograms[0], "moonLight"), 1, glm::value_ptr(moon.position));
+			 glPolygonOffset(1.0f, 1.0f);
+			 models[2].Render();
+
+
+			// <<<<<<<<<<<<<<<<<<<<<<<<<<Estrella 2>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+			 glUseProgram(compiledPrograms[0]);
+			 glActiveTexture(GL_TEXTURE2);
+			 glBindTexture(GL_TEXTURE_2D, textureID3);
+			 glUniform1i(glGetUniformLocation(compiledPrograms[0], "textureSampler"), 2);
+
+			 //Definir la matriz de traslacion, rotacion y escalado
+			 translationMatrix = glm::translate(glm::mat4(1.f), modelPoints[1].position);
+			 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(modelPoints[1].angle), modelPoints[1].rotation);
+			 scaleMatrix = glm::scale(glm::mat4(1.f), glm::vec3(0.05f));
+
+			// Definir la matriz de vista
+			//view = glm::lookAt(camara.position, camara.direction, camara.localVectorUp);
 
 			// Definir la matriz proyeccion
-			glm::mat4 projectiont = glm::perspective(glm::radians(camara.fFov), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, camara.fNear, camara.fFar);
+			projection = glm::perspective(glm::radians(camara.fFov), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, camara.fNear, camara.fFar);
 
 			//Asignar valores iniciales al programa
 			glUniform2f(glGetUniformLocation(compiledPrograms[0], "windowSize"), WINDOW_WIDTH, WINDOW_HEIGHT);
 
 
 			// Pasar las matrices
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "translationMatrix"), 1, GL_FALSE, glm::value_ptr(translationMatrixt));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "rotationMatrix"), 1, GL_FALSE, glm::value_ptr(rotationMatrixt));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "scaleMatrix"), 1, GL_FALSE, glm::value_ptr(scaleMatrixt));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "view"), 1, GL_FALSE, glm::value_ptr(viewt));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "projection"), 1, GL_FALSE, glm::value_ptr(projectiont));
-			models[3].Render();
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "translationMatrix"), 1, GL_FALSE, glm::value_ptr(translationMatrix));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "rotationMatrix"), 1, GL_FALSE, glm::value_ptr(rotationMatrix));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "scaleMatrix"), 1, GL_FALSE, glm::value_ptr(scaleMatrix));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "view"), 1, GL_FALSE, glm::value_ptr(view));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+			glUniform1i(glGetUniformLocation(compiledPrograms[0], "linterna"), linterna);
+			glUniform1i(glGetUniformLocation(compiledPrograms[0], "sun"), sunLight);
+			glUniform1i(glGetUniformLocation(compiledPrograms[0], "moon"), moonLight);
+			glUniform3fv(glGetUniformLocation(compiledPrograms[0], "sunLight"), 1, glm::value_ptr(sun.position));
+			glUniform3fv(glGetUniformLocation(compiledPrograms[0], "flashLight"), 1, glm::value_ptr(camara.position));
+			glUniform3fv(glGetUniformLocation(compiledPrograms[0], "flashLightDirection"), 1, glm::value_ptr(camara.direction));
+			glUniform3fv(glGetUniformLocation(compiledPrograms[0], "moonLight"), 1, glm::value_ptr(moon.position));
+			glPolygonOffset(1.0f, 1.0f);
+			models[2].Render();
+
+
 
 			//// <<<<<<<<<<<<<<<<<<<<<<<<<<PIEDRA ORIGINAL>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 			glUseProgram(compiledPrograms[0]);
@@ -864,12 +995,12 @@ void main() {
 			glUniform1i(glGetUniformLocation(compiledPrograms[0], "textureSampler"), 1);
 
 			//Definir la matriz de traslacion, rotacion y escalado
-			glm::mat4 translationMatrix2 = glm::translate(glm::mat4(1.f), glm::vec3(-1.8f, 0.85f, -0.8f));
+			glm::mat4 translationMatrix2 = glm::translate(glm::mat4(1.f), glm::vec3(-1.8f, 0.80f, -0.8f));
 			glm::mat4 rotationMatrix2 = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.f, 1.f, 0.f));
 			glm::mat4 scaleMatrix2 = glm::scale(glm::mat4(1.f), glm::vec3(6.f, 0.2f, 6.f));
 
 			// Definir la matriz de vista
-			view = glm::lookAt(camara.position, camara.direction, camara.localVectorUp);
+			//view = glm::lookAt(camara.position, camara.direction, camara.localVectorUp);
 
 			// Definir la matriz proyeccion
 			projection = glm::perspective(glm::radians(camara.fFov), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, camara.fNear, camara.fFar);
@@ -884,9 +1015,17 @@ void main() {
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "view"), 1, GL_FALSE, glm::value_ptr(view));
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+			glUniform1i(glGetUniformLocation(compiledPrograms[0], "linterna"), linterna);
+			glUniform1i(glGetUniformLocation(compiledPrograms[0], "sun"), sunLight);
+			glUniform1i(glGetUniformLocation(compiledPrograms[0], "moon"), moonLight);
+			glUniform3fv(glGetUniformLocation(compiledPrograms[0], "sunLight"), 1, glm::value_ptr(sun.position));
+			glUniform3fv(glGetUniformLocation(compiledPrograms[0], "flashLight"), 1, glm::value_ptr(camara.position));
+			glUniform3fv(glGetUniformLocation(compiledPrograms[0], "flashLightDirection"), 1, glm::value_ptr(camara.direction));
+			glUniform3fv(glGetUniformLocation(compiledPrograms[0], "moonLight"), 1, glm::value_ptr(moon.position));
+			glPolygonOffset(1.0f, 1.0f);
 			models[1].Render();
 
-			
+
 			//Cambiamos buffers
 			glFlush();
 			glfwSwapBuffers(window);
@@ -906,4 +1045,3 @@ void main() {
 	glfwTerminate();
 
 }
-
